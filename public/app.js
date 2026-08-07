@@ -152,7 +152,7 @@
       });
       state.sessionId = session.sessionId;
 
-      const chunks = buildPageChunks(pages, 48000);
+      const chunks = buildPageChunks(pages, 26000);
       const extracts = [];
       for (let index = 0; index < chunks.length; index += 1) {
         const percent = 30 + Math.round(((index + 1) / chunks.length) * 37);
@@ -619,11 +619,14 @@
     if (error.code === "FREE_QUOTA_EXHAUSTED" || error.status === 429) {
       return "O limite gratuito de análises foi atingido. Nenhuma cobrança será feita. Tente novamente mais tarde ou no próximo dia.";
     }
+    if (error.code === "AI_TIMEOUT" || error.status === 504) {
+      return "A inteligência artificial demorou mais do que o limite permitido nesta etapa. Tente novamente; a ferramenta já usa blocos menores para reduzir esse problema.";
+    }
     if (error.code === "API_NOT_CONFIGURED") {
       return "A chave gratuita da Gemini ainda não foi configurada. Use a demonstração para avaliar o visual e configure a chave ao publicar no Netlify.";
     }
     if (/Failed to fetch|NetworkError/i.test(error.message || "")) {
-      return "A versão local não consegue acessar as funções da Netlify. Use a demonstração ou execute o projeto com o Netlify CLI.";
+      return "Não foi possível comunicar com o serviço de análise. Verifique sua conexão e tente novamente.";
     }
     return error.message || "Ocorreu um erro inesperado durante a análise.";
   }
