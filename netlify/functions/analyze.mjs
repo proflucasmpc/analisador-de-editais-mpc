@@ -24,14 +24,19 @@ export default async (req) => {
     }
 
     await incrementSessionCall(sessionId, phase);
-    const { prompt, maxOutputTokens } = buildRequest(phase, payload);
-    const result = await callGemini({ apiKey, prompt, maxOutputTokens });
+    const { prompt, maxOutputTokens, thinkingLevel } = buildRequest(phase, payload);
+    const result = await callGemini({ apiKey, prompt, maxOutputTokens, thinkingLevel });
     return json({ result });
   } catch (error) {
     if (error?.status === 429 || /RESOURCE_EXHAUSTED|quota|rate limit/i.test(error?.message || "")) {
       error.status = 429;
       error.code = "FREE_QUOTA_EXHAUSTED";
       error.message = "A cota gratuita da inteligência artificial está temporariamente esgotada. Nenhuma cobrança será feita.";
+    }
+    if (error?.status === 504 || /timeout|timed out|deadline/i.test(error?.message || "")) {
+      error.status = 504;
+      error.code = "AI_TIMEOUT";
+      error.message = "A inteligência artificial demorou mais do que o limite desta etapa. Tente novamente; o processamento foi ajustado para blocos menores e respostas mais rápidas.";
     }
     return errorResponse(error);
   }
@@ -44,7 +49,8 @@ function buildRequest(phase, payload) {
       .join("\n");
 
     return {
-      maxOutputTokens: 20000,
+      maxOutputTokens: 7000,
+      thinkingLevel: "minimal",
       prompt: `Analise SOMENTE estas páginas de um edital de concurso público brasileiro e devolva APENAS JSON válido, sem markdown.
 
 O JSON deve ter exatamente estas chaves de nível superior:
@@ -58,6 +64,7 @@ REGRAS:
 - program_topics deve conter somente conteúdo programático de estudo, nunca regras administrativas.
 - Datas devem permanecer como aparecem no edital.
 - Use "Não informado" quando necessário.
+- Seja objetivo: evidências devem ser curtas, sem reproduzir parágrafos inteiros.
 
 FORMATO DOS REGISTROS:
 identification_evidence: [{field,value,page,evidence}]
@@ -79,7 +86,8 @@ ${pageText}`,
 
   if (phase === "consolidate") {
     return {
-      maxOutputTokens: 50000,
+      maxOutputTokens: 14000,
+      thinkingLevel: "low",
       prompt: `Consolide os extratos deste edital em um relatório único e devolva APENAS JSON válido, sem markdown.
 
 O JSON deve ter exatamente estas chaves de nível superior:
@@ -92,6 +100,7 @@ REGRAS:
 - verticalized_notice deve conter SOMENTE conteúdos programáticos reais, um assunto/subassunto por linha.
 - priority = "A definir" e status = "Não iniciado".
 - Use "Não localizado" ou "Não informado" quando faltar prova.
+- Seja compacto nas descrições para reduzir tempo de processamento, sem omitir dados objetivos.
 
 FORMATO DOS CAMPOS:
 identification {competition_name,agency,organizer,notice_number,publication_date,scope,official_link,source_pages}
@@ -115,7 +124,8 @@ ${JSON.stringify(payload.extracts || [])}`,
   }
 
   return {
-    maxOutputTokens: 50000,
+    maxOutputTokens: 14000,
+    thinkingLevel: "low",
     prompt: `Audite o relatório consolidado contra os extratos e devolva APENAS o RELATÓRIO COMPLETO CORRIGIDO em JSON válido, sem markdown, usando exatamente as mesmas chaves de nível superior do relatório recebido.
 
 REGRAS:
@@ -126,6 +136,7 @@ REGRAS:
 - Tudo que exigir conferência manual deve ir para pending_items.
 - audit.conflicts deve registrar conflitos e audit.checks as verificações realizadas.
 - Confiança alta somente com evidência consistente e poucas lacunas.
+- Seja compacto: não reescreva explicações desnecessariamente longas.
 
 ARQUIVO: ${payload.fileName || "edital.pdf"}
 TOTAL DE PÁGINAS: ${payload.totalPages || "não informado"}
@@ -136,31 +147,44 @@ ${JSON.stringify(payload.extracts || [])}`,
   };
 }
 
-async function callGemini({ apiKey, prompt, maxOutputTokens }) {
+async function callGemini({ apiKey, prompt, maxOutputTokens, thinkingLevel }) {
   const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 52_000);
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-goog-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      system_instruction: {
-        parts: [{ text: "Responda em português do Brasil. Priorize fidelidade documental, rastreabilidade por página e ausência de alucinações." }],
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "content-type": "application/json",
+        "x-goog-api-key": apiKey,
       },
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        maxOutputTokens,
-        responseFormat: {
-          text: {
-            mimeType: "APPLICATION_JSON"
-          }
-        }
-      }
-    }),
-  });
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: "Responda em português do Brasil. Priorize fidelidade documental, rastreabilidade por página e ausência de alucinações." }],
+        },
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens,
+          temperature: 0.1,
+          responseMimeType: "application/json",
+          thinkingConfig: {
+            thinkingLevel,
+          },
+        },
+      }),
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw httpError(504, "Tempo máximo da etapa excedido.", "AI_TIMEOUT");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
