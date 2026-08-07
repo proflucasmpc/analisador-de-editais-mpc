@@ -1,0 +1,17 @@
+{
+  "name": "analisador-editais-mpc-v2",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Analisador de editais com Gemini, leitura online e solicitação de PDF pelo WhatsApp.",
+  "scripts": {
+    "dev": "netlify dev",
+    "check": "node --check public/app.js && node --check public/admin.js && node --check netlify/functions/analyze.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^10.7.10"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

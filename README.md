@@ -59,7 +59,7 @@ A chave nunca deve ser escrita no HTML. Na Netlify, crie as variáveis de ambien
 - `DAILY_ANALYSES_PER_IP`
 - `MAX_GEMINI_CALLS_PER_ANALYSIS`
 
-A variável padrão do modelo está configurada como `gemini-3.6-flash`. Antes da publicação definitiva, confira no Google AI Studio se esse modelo permanece disponível no nível gratuito.
+A variável padrão do modelo está configurada como `gemini-2.5-flash`. Antes da publicação definitiva, confira no Google AI Studio se esse modelo permanece disponível no nível gratuito.
 
 ## Funcionamento gratuito
 

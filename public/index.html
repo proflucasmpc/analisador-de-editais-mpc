@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Analise editais de concursos públicos com inteligência artificial e gere um edital verticalizado." />
+  <title>Analisador Inteligente de Editais MPC</title>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="#top" aria-label="Página inicial">
+        <span class="brand-mark" id="brandMark">MPC</span>
+        <span>
+          <strong id="headerToolName">Analisador de Editais MPC</strong>
+          <small>Inteligência aplicada aos concursos</small>
+        </span>
+      </a>
+      <a class="header-cta" id="headerMentorship" href="#" target="_blank" rel="noopener">Conheça a mentoria</a>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <span class="eyebrow">ANÁLISE PROFUNDA COM INTELIGÊNCIA ARTIFICIAL</span>
+          <h1>Transforme centenas de páginas em um plano de estudo claro.</h1>
+          <p>
+            Envie o edital, identifique cargos, datas, etapas, critérios de aprovação e conteúdos programáticos.
+            Ao final, receba o edital verticalizado completo para leitura online.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-gold" href="#analisar">ANALISAR MEU EDITAL</a>
+            <button class="button button-ghost" id="demoBtn" type="button">VER DEMONSTRAÇÃO</button>
+          </div>
+          <div class="trust-row">
+            <span>✓ Referências de página</span>
+            <span>✓ Sem invenção de dados</span>
+            <span>✓ PDF solicitado pelo WhatsApp</span>
+          </div>
+        </div>
+
+        <aside class="hero-card" aria-label="Resumo do funcionamento">
+          <div class="hero-card-top">
+            <span class="ai-orb">AI</span>
+            <div>
+              <strong>Leitura em três etapas</strong>
+              <small>Extração, consolidação e auditoria</small>
+            </div>
+          </div>
+          <ol class="flow-list">
+            <li><span>1</span><div><strong>Carregue o PDF</strong><small>Texto extraído página por página.</small></div></li>
+            <li><span>2</span><div><strong>A IA analisa</strong><small>Informações associadas às páginas de origem.</small></div></li>
+            <li><span>3</span><div><strong>Leia tudo online</strong><small>Relatório e verticalização completos.</small></div></li>
+            <li><span>4</span><div><strong>Solicite o PDF</strong><small>O pedido abre diretamente no WhatsApp.</small></div></li>
+          </ol>
+        </aside>
+      </div>
+    </section>
+
+    <section class="benefits">
+      <div class="shell benefit-grid">
+        <article><span>01</span><h3>Informações essenciais</h3><p>Cargos, vagas, salários, requisitos, inscrições, prazos e etapas.</p></article>
+        <article><span>02</span><h3>Critérios de aprovação</h3><p>Notas mínimas, regras eliminatórias, pesos, desempates e recursos.</p></article>
+        <article><span>03</span><h3>Edital verticalizado</h3><p>Disciplinas, assuntos, subassuntos e páginas de origem organizados.</p></article>
+        <article><span>04</span><h3>Auditoria da análise</h3><p>Conflitos, lacunas e trechos que precisam de conferência manual.</p></article>
+      </div>
+    </section>
+
+    <section class="analyzer-section" id="analisar">
+      <div class="shell">
+        <div class="section-heading">
+          <span class="eyebrow">COMECE AGORA</span>
+          <h2>Carregue o edital do concurso</h2>
+          <p>A primeira versão aceita arquivos PDF com texto selecionável e também tenta reconhecer páginas digitalizadas.</p>
+        </div>
+
+        <div class="analyzer-card">
+          <label class="upload-zone" id="uploadZone">
+            <input id="fileInput" type="file" accept="application/pdf,.pdf" />
+            <span class="upload-icon">↥</span>
+            <strong>Arraste o PDF para esta área</strong>
+            <span>ou clique para selecionar o edital</span>
+            <small id="uploadLimit">PDF de até 35 MB</small>
+          </label>
+
+          <div class="selected-file" id="selectedFile" hidden>
+            <div class="file-icon">PDF</div>
+            <div class="file-copy">
+              <strong id="fileName"></strong>
+              <span id="fileMeta"></span>
+            </div>
+            <button class="icon-button" id="removeFile" type="button" aria-label="Remover arquivo">×</button>
+          </div>
+
+          <div class="options-grid">
+            <label class="check-card">
+              <input id="ocrCheck" type="checkbox" />
+              <span class="check-ui"></span>
+              <span><strong>Usar OCR quando necessário</strong><small>Recomendado para editais digitalizados.</small></span>
+            </label>
+            <label class="check-card">
+              <input id="privacyCheck" type="checkbox" />
+              <span class="check-ui"></span>
+              <span><strong>Confirmo o envio de edital público</strong><small id="privacyText"></small></span>
+            </label>
+          </div>
+
+          <button class="button button-gold analyze-button" id="analyzeBtn" type="button" disabled>
+            INICIAR ANÁLISE PROFUNDA
+          </button>
+
+          <div class="progress-panel" id="progressPanel" hidden aria-live="polite">
+            <div class="progress-head">
+              <div>
+                <span class="progress-kicker" id="progressStep">Etapa 1 de 5</span>
+                <strong id="progressTitle">Preparando o edital...</strong>
+              </div>
+              <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-track"><span id="progressBar"></span></div>
+            <p id="progressDetail">Não feche esta página durante o processamento.</p>
+            <div class="step-list" id="stepList">
+              <span data-step="1">Leitura do PDF</span>
+              <span data-step="2">Extração pela IA</span>
+              <span data-step="3">Consolidação</span>
+              <span data-step="4">Auditoria</span>
+              <span data-step="5">Relatório online</span>
+            </div>
+          </div>
+
+          <div class="error-box" id="errorBox" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="report-section" id="reportSection" hidden>
+      <div class="shell">
+        <div class="report-toolbar">
+          <div>
+            <span class="eyebrow">ANÁLISE CONCLUÍDA</span>
+            <h2 id="reportTitle">Relatório do edital</h2>
+            <p id="reportSubtitle"></p>
+          </div>
+          <button class="button button-whatsapp" id="requestPdfTop" type="button">SOLICITAR PDF NO WHATSAPP</button>
+        </div>
+
+        <div class="quality-banner" id="qualityBanner"></div>
+
+        <nav class="report-nav" id="reportNav" aria-label="Seções do relatório"></nav>
+
+        <div class="report-layout">
+          <article class="report-content" id="reportContent"></article>
+          <aside class="report-aside">
+            <div class="mentor-card">
+              <span class="mini-label">MENTORIA PARA CONCURSOS</span>
+              <h3>Estude com direção, estratégia e acompanhamento.</h3>
+              <p>Transforme o edital em um plano de ação e evite perder tempo com um estudo desorganizado.</p>
+              <a id="sideMentorship" href="#" target="_blank" rel="noopener">CONHECER A MENTORIA</a>
+            </div>
+            <div class="source-card">
+              <strong>Como interpretar o relatório</strong>
+              <p>Toda informação relevante deve indicar a página de origem. Campos incertos aparecem como pendência ou ponto de conferência.</p>
+            </div>
+          </aside>
+        </div>
+
+        <div class="final-cta">
+          <div>
+            <span class="eyebrow">PDF COMPLETO E PERSONALIZADO</span>
+            <h2>Receba este relatório diretamente pelo WhatsApp.</h2>
+            <p>O clique gera um código exclusivo para que o professor Lucas MPC localize exatamente esta análise.</p>
+          </div>
+          <button class="button button-whatsapp" id="requestPdfBottom" type="button">PEDIR MEU PDF GRATUITO</button>
+          <div class="request-result" id="requestResult" hidden></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-grid">
+      <div><strong id="footerToolName">Analisador de Editais MPC</strong><p>Ferramenta de apoio. Consulte sempre o edital oficial e suas retificações.</p></div>
+      <div><span>© <b id="year"></b> Professor Lucas MPC</span></div>
+    </div>
+  </footer>
+
+  <div class="sticky-request" id="stickyRequest" hidden>
+    <span>Seu relatório completo está disponível para leitura.</span>
+    <button id="stickyRequestBtn" type="button">SOLICITAR PDF</button>
+  </div>
+
+  <script src="demo-report.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

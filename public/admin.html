@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Painel privado — Analisador MPC</title>
+  <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root{--bg:#050b17;--panel:#0e1a2d;--panel2:#13243d;--text:#f4f7fb;--muted:#a9b6ca;--gold:#d6a928;--gold2:#f3d36f;--green:#24b96b;--red:#ed626b;--line:rgba(255,255,255,.11)}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0%,rgba(58,112,235,.14),transparent 28%),var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;min-height:100vh}.shell{width:min(1180px,calc(100% - 28px));margin:auto}header{border-bottom:1px solid var(--line);background:rgba(5,11,23,.88);position:sticky;top:0;z-index:10;backdrop-filter:blur(16px)}.header{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{display:flex;align-items:center;gap:12px}.mark{width:43px;height:43px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#07101e;font-weight:950}.brand small{display:block;color:var(--muted)}.back{color:var(--gold2);text-decoration:none;border:1px solid rgba(214,169,40,.35);padding:9px 13px;border-radius:999px;font-weight:800}main{padding:45px 0 80px}.login,.dashboard{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:24px;padding:26px;box-shadow:0 30px 80px rgba(0,0,0,.28)}.login{max-width:680px;margin:30px auto}.eyebrow{color:var(--gold2);font-size:.78rem;font-weight:900;letter-spacing:.1em}h1{font-size:clamp(2rem,5vw,3.5rem);margin:14px 0 8px;letter-spacing:-.045em}p{color:var(--muted);line-height:1.55}.field{display:grid;gap:7px;margin-top:18px}.field label{font-weight:850}.field input{border:1px solid var(--line);border-radius:13px;padding:14px;background:rgba(255,255,255,.05);color:white;outline:none}.field input:focus{border-color:rgba(214,169,40,.65)}button{border:0;border-radius:13px;padding:13px 17px;font-weight:900;cursor:pointer}.gold{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#07101e}.ghost{background:transparent;color:white;border:1px solid var(--line)}.green{background:var(--green);color:white}.red{background:var(--red);color:white}.full{width:100%;margin-top:16px}.toolbar{display:grid;grid-template-columns:1fr auto auto;gap:10px;margin-bottom:18px}.toolbar input{border:1px solid var(--line);border-radius:13px;padding:13px;background:rgba(255,255,255,.05);color:white}.grid{display:grid;grid-template-columns:360px 1fr;gap:18px}.list{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:rgba(255,255,255,.025);max-height:720px;overflow-y:auto}.record{width:100%;display:block;text-align:left;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;color:white;padding:15px;cursor:pointer}.record:hover,.record.active{background:rgba(214,169,40,.08)}.record strong,.record span,.record small{display:block}.record span{color:var(--gold2);font-size:.83rem;margin:4px 0}.record small{color:var(--muted)}.detail{border:1px solid var(--line);border-radius:18px;padding:20px;background:rgba(255,255,255,.025);min-height:420px}.empty{display:grid;place-items:center;text-align:center;color:var(--muted);min-height:360px}.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.meta div{padding:12px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.03)}.meta span{display:block;color:var(--muted);font-size:.76rem}.meta strong{display:block;margin-top:5px;word-break:break-word}.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}.status{display:inline-flex;border-radius:999px;padding:5px 9px;font-size:.75rem;font-weight:900;background:rgba(214,169,40,.12);color:var(--gold2)}.summary{border-left:3px solid var(--gold);background:rgba(255,255,255,.035);padding:13px 14px;border-radius:0 13px 13px 0;color:#d7e0ed}.message{margin-top:13px;min-height:22px;font-weight:800}.ok{color:#7ce8ae}.err{color:#ff9ea5}@media(max-width:850px){.grid{grid-template-columns:1fr}.list{max-height:340px}.toolbar{grid-template-columns:1fr}.meta{grid-template-columns:1fr}.back{display:none}}
+  </style>
+</head>
+<body>
+<header><div class="shell header"><div class="brand"><span class="mark">MPC</span><div><strong>Painel privado de relatórios</strong><small>Uso exclusivo do professor Lucas MPC</small></div></div><a class="back" href="index.html">Voltar à ferramenta</a></div></header>
+<main><div class="shell">
+  <section class="login" id="loginCard">
+    <span class="eyebrow">ACESSO ADMINISTRATIVO</span>
+    <h1>Localize e baixe os relatórios solicitados.</h1>
+    <p>A senha é validada no servidor. Ela não fica gravada no site público.</p>
+    <div class="field"><label for="adminSecret">Senha administrativa</label><input id="adminSecret" type="password" autocomplete="current-password" placeholder="Digite a senha configurada na Netlify" /></div>
+    <button class="gold full" id="loginBtn" type="button">ENTRAR NO PAINEL</button>
+    <div class="message" id="loginMessage"></div>
+  </section>
+
+  <section class="dashboard" id="dashboard" hidden>
+    <div class="toolbar">
+      <input id="searchCode" type="text" placeholder="Código MPC-XXXX-XXXX ou nome do concurso" />
+      <button class="ghost" id="refreshBtn" type="button">ATUALIZAR LISTA</button>
+      <button class="gold" id="findBtn" type="button">LOCALIZAR</button>
+    </div>
+    <div class="grid">
+      <div class="list" id="recordList"></div>
+      <div class="detail" id="recordDetail"><div class="empty">Selecione uma solicitação para visualizar os detalhes.</div></div>
+    </div>
+    <div class="message" id="dashboardMessage"></div>
+  </section>
+</div></main>
+<script src="admin.js"></script>
+</body>
+</html>
