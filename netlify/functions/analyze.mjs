@@ -6,55 +6,6 @@ import {
   readJson,
 } from "../lib/shared.mjs";
 
-const looseObject = { type: "object", additionalProperties: true };
-const objectArray = { type: "array", items: looseObject };
-
-const extractSchema = {
-  type: "object",
-  properties: {
-    identification_evidence: objectArray,
-    positions: objectArray,
-    registration_evidence: objectArray,
-    timeline: objectArray,
-    stages: objectArray,
-    objective_tests: objectArray,
-    approval_criteria: objectArray,
-    program_topics: objectArray,
-    attention_points: objectArray,
-    ambiguities: objectArray,
-  },
-  required: [
-    "identification_evidence", "positions", "registration_evidence", "timeline",
-    "stages", "objective_tests", "approval_criteria", "program_topics",
-    "attention_points", "ambiguities",
-  ],
-  additionalProperties: false,
-};
-
-const reportSchema = {
-  type: "object",
-  properties: {
-    identification: looseObject,
-    executive_summary: { type: "string" },
-    positions: objectArray,
-    registration: looseObject,
-    timeline: objectArray,
-    stages: objectArray,
-    objective_tests: objectArray,
-    approval_criteria: objectArray,
-    verticalized_notice: objectArray,
-    attention_points: objectArray,
-    pending_items: objectArray,
-    audit: looseObject,
-  },
-  required: [
-    "identification", "executive_summary", "positions", "registration", "timeline",
-    "stages", "objective_tests", "approval_criteria", "verticalized_notice",
-    "attention_points", "pending_items", "audit",
-  ],
-  additionalProperties: false,
-};
-
 export default async (req) => {
   if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
 
@@ -73,8 +24,8 @@ export default async (req) => {
     }
 
     await incrementSessionCall(sessionId, phase);
-    const request = buildRequest(phase, payload);
-    const result = await callGemini({ apiKey, ...request });
+    const { prompt, maxOutputTokens } = buildRequest(phase, payload);
+    const result = await callGemini({ apiKey, prompt, maxOutputTokens });
     return json({ result });
   } catch (error) {
     if (error?.status === 429 || /RESOURCE_EXHAUSTED|quota|rate limit/i.test(error?.message || "")) {
@@ -93,9 +44,11 @@ function buildRequest(phase, payload) {
       .join("\n");
 
     return {
-      schema: extractSchema,
       maxOutputTokens: 20000,
-      prompt: `Analise SOMENTE estas páginas de um edital de concurso público brasileiro.
+      prompt: `Analise SOMENTE estas páginas de um edital de concurso público brasileiro e devolva APENAS JSON válido, sem markdown.
+
+O JSON deve ter exatamente estas chaves de nível superior:
+identification_evidence, positions, registration_evidence, timeline, stages, objective_tests, approval_criteria, program_topics, attention_points, ambiguities.
 
 REGRAS:
 - Não invente, complete ou deduza informação ausente.
@@ -107,16 +60,16 @@ REGRAS:
 - Use "Não informado" quando necessário.
 
 FORMATO DOS REGISTROS:
-identification_evidence: {field,value,page,evidence}
-positions: {name,vacancies,education,requirements,workload,compensation,benefits,registration_fee,page,evidence}
-registration_evidence: {field,value,page,evidence}
-timeline: {event,date,page,evidence}
-stages: {name,nature,details,page,evidence}
-objective_tests: {position,discipline,questions,weight,total_points,minimum_rule,page,evidence}
-approval_criteria: {rule,page,evidence}
-program_topics: {position,discipline,topic,subtopic,page,evidence}
-attention_points: {title,detail,severity,page,evidence}
-ambiguities: {item,reason,page}
+identification_evidence: [{field,value,page,evidence}]
+positions: [{name,vacancies,education,requirements,workload,compensation,benefits,registration_fee,page,evidence}]
+registration_evidence: [{field,value,page,evidence}]
+timeline: [{event,date,page,evidence}]
+stages: [{name,nature,details,page,evidence}]
+objective_tests: [{position,discipline,questions,weight,total_points,minimum_rule,page,evidence}]
+approval_criteria: [{rule,page,evidence}]
+program_topics: [{position,discipline,topic,subtopic,page,evidence}]
+attention_points: [{title,detail,severity,page,evidence}]
+ambiguities: [{item,reason,page}]
 
 ARQUIVO: ${payload.fileName || "edital.pdf"}
 TOTAL DE PÁGINAS: ${payload.totalPages || "não informado"}
@@ -126,19 +79,21 @@ ${pageText}`,
 
   if (phase === "consolidate") {
     return {
-      schema: reportSchema,
       maxOutputTokens: 50000,
-      prompt: `Consolide os extratos deste edital em um relatório único, rigoroso e rastreável.
+      prompt: `Consolide os extratos deste edital em um relatório único e devolva APENAS JSON válido, sem markdown.
+
+O JSON deve ter exatamente estas chaves de nível superior:
+identification, executive_summary, positions, registration, timeline, stages, objective_tests, approval_criteria, verticalized_notice, attention_points, pending_items, audit.
 
 REGRAS:
-- Elimine duplicações, preservando todas as páginas de origem.
+- Elimine duplicações, preservando páginas de origem.
 - Não misture dados de cargos diferentes.
 - Conflitos nunca devem ser resolvidos por suposição: registre-os em pending_items e audit.conflicts.
 - verticalized_notice deve conter SOMENTE conteúdos programáticos reais, um assunto/subassunto por linha.
-- priority = "A definir" e status = "Não iniciado", salvo regra documental explícita apenas para justificar observação.
+- priority = "A definir" e status = "Não iniciado".
 - Use "Não localizado" ou "Não informado" quando faltar prova.
 
-FORMATO EXATO DOS CAMPOS:
+FORMATO DOS CAMPOS:
 identification {competition_name,agency,organizer,notice_number,publication_date,scope,official_link,source_pages}
 executive_summary string
 positions [{name,vacancies,education,requirements,workload,compensation,benefits,registration_fee,source_pages}]
@@ -160,9 +115,8 @@ ${JSON.stringify(payload.extracts || [])}`,
   }
 
   return {
-    schema: reportSchema,
     maxOutputTokens: 50000,
-    prompt: `Audite o relatório consolidado contra os extratos e devolva o RELATÓRIO COMPLETO CORRIGIDO no mesmo formato.
+    prompt: `Audite o relatório consolidado contra os extratos e devolva APENAS o RELATÓRIO COMPLETO CORRIGIDO em JSON válido, sem markdown, usando exatamente as mesmas chaves de nível superior do relatório recebido.
 
 REGRAS:
 - Remova qualquer informação sem sustentação nos extratos.
@@ -170,7 +124,7 @@ REGRAS:
 - Verifique datas conflitantes, anexos ausentes e tabelas parcialmente lidas.
 - Garanta que verticalized_notice contenha somente conteúdos programáticos reais.
 - Tudo que exigir conferência manual deve ir para pending_items.
-- audit.conflicts deve registrar conflitos encontrados e audit.checks as verificações realizadas.
+- audit.conflicts deve registrar conflitos e audit.checks as verificações realizadas.
 - Confiança alta somente com evidência consistente e poucas lacunas.
 
 ARQUIVO: ${payload.fileName || "edital.pdf"}
@@ -182,7 +136,7 @@ ${JSON.stringify(payload.extracts || [])}`,
   };
 }
 
-async function callGemini({ apiKey, prompt, schema, maxOutputTokens }) {
+async function callGemini({ apiKey, prompt, maxOutputTokens }) {
   const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 
@@ -201,11 +155,10 @@ async function callGemini({ apiKey, prompt, schema, maxOutputTokens }) {
         maxOutputTokens,
         responseFormat: {
           text: {
-            mimeType: "application/json",
-            schema,
-          },
-        },
-      },
+            mimeType: "APPLICATION_JSON"
+          }
+        }
+      }
     }),
   });
 
